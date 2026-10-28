@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<!--
+  GALAKSI UNTUKMU — gabungan dua template (galaksi + hati partikel + foto orbit)
+  Cara pakai singkat:
+    1. Cari bagian "CONFIG" di dalam <script type="module"> paling bawah.
+    2. Ubah judul, kalimat, pesan kartu, daftar foto, dan nama file musik.
+    3. Taruh file foto & musik di folder yang SAMA dengan index.html (atau sesuaikan path di CONFIG).
+-->
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galaksi Untukmu</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%96%3C/text%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #04030a;
+            --gold: #FFE8C7;
+            --rose: #FF9EC4;
+            --violet: #8C6BFF;
+            --text: #F5EFFF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: 'Quicksand', sans-serif;
+            touch-action: none;
+            cursor: grab;
+            -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body:active { cursor: grabbing; }
+        canvas { display: block; position: fixed; inset: 0; z-index: 1; }
+
+        #judul {
+            position: fixed;
+            top: clamp(18px, 5vw, 44px);
+            left: 0; width: 100%;
+            padding: 0 14px;
+            text-align: center;
+            font-family: 'Caveat', cursive;
+            font-weight: 700;
+            font-size: clamp(2.3rem, 6vw, 4.4rem);
+            background: linear-gradient(120deg, var(--gold), var(--rose) 55%, var(--violet));
+            -webkit-background-clip: text; background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 0 16px rgba(255, 158, 196, 0.45));
+            z-index: 10;
+            pointer-events: none;
+            animation: denyutJudul 3s ease-in-out infinite;
+        }
+        @keyframes denyutJudul { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+
+        #petunjuk {
+            position: fixed; bottom: 22px; left: 0; width: 100%;
+            text-align: center;
+            font-family: 'Caveat', cursive; font-size: 1.4rem;
+            color: var(--text); opacity: 0;
+            z-index: 10; pointer-events: none;
+            transition: opacity 1.2s ease;
+        }
+        #petunjuk.tampil { opacity: 0.8; }
+
+        #tombol-musik {
+            position: fixed; right: 16px; bottom: 16px;
+            width: 46px; height: 46px; border-radius: 50%;
+            border: 1px solid rgba(255, 232, 199, 0.3);
+            background: rgba(20, 10, 40, 0.55);
+            backdrop-filter: blur(6px);
+            font-size: 1.3rem; line-height: 1;
+            cursor: pointer; z-index: 20; display: none;
+        }
+
+        #pintu-masuk {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at center, #2a0a2e 0%, var(--bg) 70%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            gap: 18px; z-index: 9999; padding: 24px; text-align: center;
+            transition: opacity 0.9s ease;
+        }
+        #pintu-masuk.hilang { opacity: 0; pointer-events: none; }
+
+        #tombol-masuk {
+            padding: 16px 38px; border: none; border-radius: 999px;
+            background: linear-gradient(135deg, var(--rose), var(--violet));
+            color: #fff; font-family: 'Quicksand', sans-serif; font-weight: 700;
+            font-size: 1.35rem; letter-spacing: 0.02em; cursor: pointer;
+            filter: drop-shadow(0 0 16px rgba(255, 158, 196, 0.55)) drop-shadow(0 0 28px rgba(140, 107, 255, 0.35));
+            animation: denyut 2s ease-in-out infinite;
+        }
+        #tombol-masuk:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+        @keyframes denyut { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+        #teks-masuk { font-family: 'Caveat', cursive; font-size: 1.7rem; color: var(--text); opacity: 0.85; }
+        #hati-masuk { font-size: 3rem; animation: denyut 1.1s ease-in-out infinite; }
+
+        #kartu-overlay {
+            position: fixed; inset: 0;
+            background: rgba(4, 3, 10, 0.82);
+            backdrop-filter: blur(6px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100; cursor: pointer; padding: 24px;
+        }
+        #kartu {
+            width: min(92vw, 420px); max-height: 88vh; overflow: auto;
+            border-radius: 26px; padding: 28px 24px; text-align: center;
+            background:
+                radial-gradient(circle at 30% 20%, rgba(255, 232, 199, 0.16), transparent 60%),
+                linear-gradient(160deg, rgba(255, 158, 196, 0.16), rgba(140, 107, 255, 0.16));
+            border: 1px solid rgba(255, 232, 199, 0.25);
+            box-shadow: 0 0 40px rgba(255, 158, 196, 0.25), 0 0 70px rgba(140, 107, 255, 0.2);
+        }
+        #kartu-foto {
+            display: block; width: 100%; max-height: 55vh; object-fit: contain;
+            border-radius: 16px; margin-bottom: 16px;
+            box-shadow: 0 0 24px rgba(255, 158, 196, 0.3);
+        }
+        #kartu-foto[hidden] { display: none; }
+        #kartu-teks { font-family: 'Caveat', cursive; font-size: 1.9rem; line-height: 1.4; color: var(--text); }
+        #kartu-tutup { display: block; margin-top: 14px; font-size: 0.8rem; color: var(--text); opacity: 0.5; }
+
+        @media (max-width: 768px) {
+            #kartu-teks { font-size: 1.6rem; }
+            #tombol-masuk { font-size: 1.15rem; padding: 14px 30px; }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="judul"></h1>
+    <div id="petunjuk">Ketuk tulisan, emoji, atau foto untuk membuka pesan</div>
+    <button id="tombol-musik" type="button" aria-label="Nyalakan atau matikan musik">🔊</button>
+
+    <div id="pintu-masuk">
+        <div id="hati-masuk" aria-hidden="true">❤️</div>
+        <button id="tombol-masuk" type="button"></button>
+        <div id="teks-masuk"></div>
+    </div>
+
+    <div id="kartu-overlay">
+        <div id="kartu">
+            <img id="kartu-foto" alt="" hidden>
+            <p id="kartu-teks"></p>
+            <span id="kartu-tutup">Ketuk untuk menutup</span>
+        </div>
+    </div>
+
+    <audio id="musik" loop preload="auto"></audio>
+    <canvas id="kanvas-galaksi"></canvas>
+
+    <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+    </script>
+
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+    // ===================================================================
+    // =====================  CONFIG — EDIT DI SINI  =====================
+    // ===================================================================
+    const CONFIG = {
+        judul: 'Untukmu, Bintangku',
+        teksTombolMasuk: 'Sentuh di sini',
+        teksMasuk: 'Ketuk untuk memulai perjalanan',
+
+        // ---- MUSIK ----
+        // Ganti dengan nama file musikmu (taruh di folder yang sama dengan index.html),
+        // atau URL langsung ke file .mp3. Kosongkan ('') kalau tidak mau musik.
+        musik: { url: 'musik.mp3', volume: 0.7 },
+
+        // ---- FOTO ----
+        // Tambah/hapus baris sesuai kebutuhan. "teks" = tulisan yang muncul di bawah foto saat diketuk (boleh dikosongkan).
+        foto: {
+            daftar: [
+                { src: 'foto1.jpg', teks: 'Kenangan pertama kita' },
+                { src: 'foto2.jpg', teks: 'Senyummu favoritku' },
+                { src: 'foto3.jpg', teks: 'Selamanya, ya?' }
+            ],
+            ulang: 3,        // tiap foto muncul berapa kali mengorbit
+            ukuran: 30,      // ukuran foto di layar besar
+            ukuranHP: 22     // ukuran foto di HP
+        },
+
+        // ---- KALIMAT YANG MENGORBIT ----
+        frasa: [
+            'Kamu tempat favoritku',
+            'Bersamamu semuanya lebih indah',
+            'Bahagiaku bernama kamu',
+            'Sampai ke bintang dan kembali',
+            'Satu semesta, hanya kita',
+            'Selamat ulang tahun, sayang',
+            'Semoga sehat dan bahagia selalu',
+            'Setiap hari aku memilihmu',
+            'Kamu lebih terang dari bintang mana pun',
+            'Hatiku milikmu, selamanya'
+        ],
+        jumlahFrasa: 36,
+
+        // ---- EMOJI YANG MENGORBIT ----
+        emoji: { isi: ['💫', '✨', '🌙', '💖', '🌸', '⭐'], jumlah: 40, ukuran: 9 },
+
+        // ---- PESAN KARTU (muncul bergantian saat tulisan/emoji diketuk) ----
+        pesanKartu: [
+            'Terima kasih sudah hadir dan mewarnai hari-hariku.',
+            'Kamu alasan aku percaya bahwa bintang itu nyata.',
+            'Selamat ulang tahun! Semoga semua doamu terkabul.',
+            'Semoga kita terus mengorbit bersama, selamanya.'
+        ],
+
+        // ---- HATI PARTIKEL DI TENGAH ----
+        hati: {
+            jumlah: 6500, skala: 1.15, ketebalan: 3.2, kedalaman: 9, ukuranTitik: 1.0,
+            warna1: '#FF3D8B', warna2: '#FFB3D1'
+        },
+
+        // ---- CINCIN & GALAKSI ----
+        cincin: { dalam: 26, luar: 46, warnaPusat: '#FFE8C7', warnaTengah: '#FF9EC4', warnaTepi: '#8C6BFF' },
+        spiral: { jumlah: 24000, lengan: 4, radiusDalam: 30, radiusLuar: 130, lilitan: 0.028, tebal: 14, ukuranTitik: 0.55 },
+        halo: { jumlah: 12000, radius: 125, minJarak: 40, ukuranTitik: 0.45 },
+        bintangLatar: { jumlah: 3500, radius: 600 },
+        kecepatanPutar: 0.06,
+
+        bintangJatuh: { aktif: true, peluang: 0.012, kecepatan: 1.1 },
+        bloom: { threshold: 0.7, strength: 0.6, radius: 0.5 },
+        kamera: { jarakMin: 50, jarakMax: 380 }
+    };
+    // ===================================================================
+
+    const warnaTeks = [
+        { isi: '#FFD9C2', bayang: '#FF9EC4' },
+        { isi: '#E8D9FF', bayang: '#8C6BFF' },
+        { isi: '#FFE8C7', bayang: '#FF7EB3' }
+    ];
+
+    const adaHP = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent) || window.innerWidth <= 820;
+    const n = (x) => Math.round(x * (adaHP ? 0.6 : 1));
+    const kurangiGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const $ = (id) => document.getElementById(id);
+
+    $('judul').textContent = CONFIG.judul;
+    document.title = CONFIG.judul;
+    $('tombol-masuk').textContent = CONFIG.teksTombolMasuk;
+    $('teks-masuk').textContent = CONFIG.teksMasuk;
+
+    // Tunggu font tulisan tangan siap supaya teks di dalam kanvas tidak memakai font cadangan
+    try { await Promise.race([document.fonts.load('80px "Caveat"'), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
+
+    let scene, camera, renderer, controls, composer, clock, raycaster, mouse;
+    let grupGalaksi, hati, glow, teksturTitik;
+    const elemenKlik = [];
+    const posisiTerpakai = [];
+    const bintangJatuh = [];
+    let bintangJatuhGeo, bintangJatuhMat;
+    let idxPesan = 0;
+
+    // ---------- Tekstur buatan (tanpa file gambar) ----------
+    function buatTeksturTitik() {
+        const c = document.createElement('canvas'); c.width = c.height = 64;
+        const x = c.getContext('2d');
+        const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.5, 'rgba(255,255,255,0.9)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(c);
+    }
+
+    function buatTeksturGlow() {
+        const s = 512;
+        const c = document.createElement('canvas'); c.width = c.height = s;
+        const x = c.getContext('2d');
+        const g = x.createRadialGradient(s / 2, s / 2, s * 0.04, s / 2, s / 2, s / 2);
+        g.addColorStop(0, 'rgba(255,90,160,0.75)');
+        g.addColorStop(0.45, 'rgba(255,120,200,0.2)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g; x.fillRect(0, 0, s, s);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+    }
+
+    function buatLatarNebula() {
+        const s = 1024;
+        const c = document.createElement('canvas'); c.width = c.height = s;
+        const x = c.getContext('2d');
+        x.fillStyle = '#05030c'; x.fillRect(0, 0, s, s);
+        [
+            { x: 0.28, y: 0.35, r: 0.55, c: 'rgba(120,20,90,0.5)' },
+            { x: 0.72, y: 0.62, r: 0.5, c: 'rgba(70,30,130,0.5)' },
+            { x: 0.5, y: 0.5, r: 0.7, c: 'rgba(40,10,50,0.4)' }
+        ].forEach(b => {
+            const g = x.createRadialGradient(s * b.x, s * b.y, 0, s * b.x, s * b.y, s * b.r);
+            g.addColorStop(0, b.c); g.addColorStop(1, 'rgba(0,0,0,0)');
+            x.fillStyle = g; x.fillRect(0, 0, s, s);
+        });
+        for (let i = 0; i < 300; i++) {
+            x.fillStyle = `rgba(255,255,255,${Math.random() * 0.5})`;
+            const k = Math.random() * 1.4;
+            x.fillRect(Math.random() * s, Math.random() * s, k, k);
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+    }
+
+    // ---------- Init ----------
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = buatLatarNebula();
+        clock = new THREE.Clock();
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+        teksturTitik = buatTeksturTitik();
+
+        camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
+        renderer = new THREE.WebGLRenderer({ canvas: $('kanvas-galaksi'), antialias: !adaHP });
+        renderer.setPixelRatio(Math.min(devicePixelRatio || 1, adaHP ? 1.5 : 2));
+        renderer.setSize(innerWidth, innerHeight);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.enablePan = false;
+        controls.minDistance = CONFIG.kamera.jarakMin;
+        controls.maxDistance = CONFIG.kamera.jarakMax;
+
+        composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1, 0.5, 0.7);
+        bloom.threshold = CONFIG.bloom.threshold;
+        bloom.strength = CONFIG.bloom.strength;
+        bloom.radius = CONFIG.bloom.radius;
+        composer.addPass(bloom);
+        composer.addPass(new OutputPass());
+
+        grupGalaksi = new THREE.Group();
+        scene.add(grupGalaksi);
+
+        buatHati();
+        buatCincin();
+        buatLenganSpiral();
+        buatHalo();
+        buatBintangLatar();
+        buatFrasaDanEmoji();
+        buatFoto();
+
+        bintangJatuhGeo = new THREE.BufferGeometry();
+        bintangJatuhGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
+        bintangJatuhMat = new THREE.PointsMaterial({ color: 0xffffff, size: 3, map: teksturTitik, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+
+        if (kurangiGerak) {
+            CONFIG.kecepatanPutar *= 0.35;
+            CONFIG.bintangJatuh.peluang *= 0.3;
+        }
+
+        addEventListener('resize', saatUkuranBerubah);
+        saatUkuranBerubah();
+        pasangKlik();
+        animasi();
+    }
+
+    // ---------- Hati partikel (di tengah, selalu menghadap kamera) ----------
+    function kurvaHati(t) {
+        return {
+            x: 16 * Math.pow(Math.sin(t), 3),
+            y: 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)
+        };
+    }
+
+    function buatHati() {
+        const C = CONFIG.hati;
+        const jumlah = n(C.jumlah);
+        const pos = new Float32Array(jumlah * 3);
+        const warna = new Float32Array(jumlah * 3);
+        const w1 = new THREE.Color(C.warna1), w2 = new THREE.Color(C.warna2), w = new THREE.Color();
+
+        for (let i = 0; i < jumlah; i++) {
+            const t = Math.random() * Math.PI * 2;
+            const p0 = kurvaHati(t), p1 = kurvaHati(t + 0.001);
+            const tx = p1.x - p0.x, ty = p1.y - p0.y;
+            const len = Math.hypot(tx, ty) || 1;
+            let x, y;
+            if (Math.random() < 0.7) {            // pinggiran hati yang tebal
+                const off = (Math.random() - 0.5) * C.ketebalan;
+                x = p0.x + (-ty / len) * off;
+                y = p0.y + (tx / len) * off;
+            } else {                              // isian di dalam hati
+                const f = 0.15 + 0.85 * Math.sqrt(Math.random());
+                x = p0.x * f; y = p0.y * f;
+            }
+            y += 2.5; // pusatkan hati
+            pos.set([x * C.skala, y * C.skala, (Math.random() - 0.5) * C.kedalaman], i * 3);
+            w.copy(w1).lerp(w2, Math.random());
+            warna.set([w.r, w.g, w.b], i * 3);
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(warna, 3));
+        hati = new THREE.Points(geo, new THREE.PointsMaterial({
+            size: C.ukuranTitik, map: teksturTitik, vertexColors: true, transparent: true,
+            alphaTest: 0.01, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95
+        }));
+        scene.add(hati);
+
+        glow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: buatTeksturGlow(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        }));
+        glow.scale.set(120, 120, 1);
+        scene.add(glow);
+    }
+
+    // ---------- Cincin cahaya mengelilingi hati ----------
+    function buatCincin() {
+        const C = CONFIG.cincin;
+        const mat = new THREE.ShaderMaterial({
+            uniforms: {
+                innerR: { value: C.dalam }, outerR: { value: C.luar },
+                warnaPusat: { value: new THREE.Color(C.warnaPusat) },
+                warnaTengah: { value: new THREE.Color(C.warnaTengah) },
+                warnaTepi: { value: new THREE.Color(C.warnaTepi) }
+            },
+            vertexShader: `
+                varying vec3 vPos;
+                void main() {
+                    vPos = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`,
+            fragmentShader: `
+                uniform float innerR; uniform float outerR;
+                uniform vec3 warnaPusat; uniform vec3 warnaTengah; uniform vec3 warnaTepi;
+                varying vec3 vPos;
+                void main() {
+                    float t = clamp((length(vPos.xy) - innerR) / (outerR - innerR), 0.0, 1.0);
+                    vec3 w = t < 0.5 ? mix(warnaPusat, warnaTengah, t * 2.0)
+                                     : mix(warnaTengah, warnaTepi, (t - 0.5) * 2.0);
+                    float a = smoothstep(0.0, 0.18, t) * (1.0 - smoothstep(0.7, 1.0, t));
+                    gl_FragColor = vec4(w, a * 0.65);
+                }`,
+            transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+        });
+        const cincin = new THREE.Mesh(new THREE.RingGeometry(C.dalam, C.luar, 128), mat);
+        cincin.rotation.x = Math.PI / 2;
+        scene.add(cincin);
+    }
+
+    // ---------- Lengan spiral galaksi (emas → pink → ungu) ----------
+    function buatLenganSpiral() {
+        const C = CONFIG.spiral;
+        const jumlah = n(C.jumlah);
+        const pos = new Float32Array(jumlah * 3);
+        const warna = new Float32Array(jumlah * 3);
+        const a = new THREE.Color('#FFE8C7'), b = new THREE.Color('#FF9EC4'), v = new THREE.Color('#8C6BFF'), w = new THREE.Color();
+
+        for (let i = 0; i < jumlah; i++) {
+            const k = Math.pow(Math.random(), 0.85);
+            const r = C.radiusDalam + k * (C.radiusLuar - C.radiusDalam);
+            const lengan = i % C.lengan;
+            const sebar = (Math.random() - 0.5) * (0.9 - 0.5 * k);
+            const th = (lengan * Math.PI * 2) / C.lengan + r * C.lilitan * 6 + sebar;
+            const y = (Math.random() - 0.5) * C.tebal * (1 - k * 0.7);
+            pos.set([Math.cos(th) * r, y, Math.sin(th) * r], i * 3);
+            if (k < 0.5) w.copy(a).lerp(b, k * 2); else w.copy(b).lerp(v, (k - 0.5) * 2);
+            w.multiplyScalar(0.7 + Math.random() * 0.5);
+            warna.set([w.r, w.g, w.b], i * 3);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(warna, 3));
+        grupGalaksi.add(new THREE.Points(geo, new THREE.PointsMaterial({
+            size: C.ukuranTitik, map: teksturTitik, vertexColors: true, transparent: true,
+            alphaTest: 0.01, depthWrite: false, blending: THREE.AdditiveBlending
+        })));
+    }
+
+    // ---------- Halo debu ungu-biru ----------
+    function buatHalo() {
+        const C = CONFIG.halo;
+        const jumlah = n(C.jumlah);
+        const pos = new Float32Array(jumlah * 3);
+        const warna = new Float32Array(jumlah * 3);
+        const c = new THREE.Color();
+        let i = 0;
+        while (i < jumlah) {
+            const r = C.radius * Math.cbrt(Math.random());
+            const th = Math.random() * Math.PI * 2;
+            const ph = Math.acos(2 * Math.random() - 1);
+            const x = r * Math.sin(ph) * Math.cos(th);
+            const y = r * Math.cos(ph) * 0.45;
+            const z = r * Math.sin(ph) * Math.sin(th);
+            if (Math.hypot(x, y, z) < C.minJarak) continue;
+            pos.set([x, y, z], i * 3);
+            c.setHSL(0.68 + Math.random() * 0.1, 0.55 + Math.random() * 0.4, 0.45 + Math.random() * 0.35);
+            warna.set([c.r, c.g, c.b], i * 3);
+            i++;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(warna, 3));
+        grupGalaksi.add(new THREE.Points(geo, new THREE.PointsMaterial({
+            size: C.ukuranTitik, map: teksturTitik, vertexColors: true, transparent: true,
+            alphaTest: 0.01, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.6
+        })));
+    }
+
+    function buatBintangLatar() {
+        const C = CONFIG.bintangLatar;
+        const jumlah = n(C.jumlah);
+        const pos = new Float32Array(jumlah * 3);
+        for (let i = 0; i < jumlah; i++) {
+            const r = C.radius * (0.5 + Math.random() * 0.5);
+            const th = Math.random() * Math.PI * 2;
+            const ph = Math.acos(2 * Math.random() - 1);
+            pos.set([r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th)], i * 3);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+            color: 0xffffff, size: 2, sizeAttenuation: false, map: teksturTitik,
+            transparent: true, alphaTest: 0.01, depthWrite: false, opacity: 0.7
+        })));
+    }
+
+    // ---------- Penempatan orbit (hindari tumpang tindih) ----------
+    function tempatkan(sprite, rMin, rMax, pisahMin) {
+        let hasil = null;
+        for (let k = 0; k < 60; k++) {
+            const r = rMin + Math.random() * (rMax - rMin);
+            const th = Math.random() * Math.PI * 2;
+            const p = { x: r * Math.cos(th), y: (Math.random() - 0.5) * 30, z: r * Math.sin(th) };
+            hasil = p;
+            if (posisiTerpakai.every(q => Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z) >= pisahMin)) break;
+        }
+        sprite.position.set(hasil.x, hasil.y, hasil.z);
+        posisiTerpakai.push(hasil);
+    }
+
+    function spriteDariKanvas(kanvas, lebarDunia, data) {
+        const tex = new THREE.CanvasTexture(kanvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+        sp.scale.set(lebarDunia, lebarDunia * kanvas.height / kanvas.width, 1);
+        sp.userData = data;
+        return sp;
+    }
+
+    function kanvasTeks(teks, w) {
+        const lebar = 1024, fontPx = 88, tinggiBaris = 100;
+        const font = `${fontPx}px "Caveat", cursive`;
+        const ukur = document.createElement('canvas').getContext('2d');
+        ukur.font = font;
+        const kata = teks.split(' ');
+        const baris = [];
+        let sekarang = kata[0];
+        for (let i = 1; i < kata.length; i++) {
+            const coba = sekarang + ' ' + kata[i];
+            if (ukur.measureText(coba).width > lebar - 80) { baris.push(sekarang); sekarang = kata[i]; }
+            else sekarang = coba;
+        }
+        baris.push(sekarang);
+
+        const c = document.createElement('canvas');
+        c.width = lebar; c.height = baris.length * tinggiBaris + 50;
+        const x = c.getContext('2d');
+        x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillStyle = w.isi; x.shadowColor = w.bayang; x.shadowBlur = 14;
+        baris.forEach((b, i) => x.fillText(b, lebar / 2, 25 + tinggiBaris / 2 + i * tinggiBaris));
+        return c;
+    }
+
+    function kanvasEmoji(emoji, w) {
+        const c = document.createElement('canvas'); c.width = c.height = 256;
+        const x = c.getContext('2d');
+        x.font = '170px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+        x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.shadowColor = w.bayang; x.shadowBlur = 18;
+        x.fillText(emoji, 128, 136);
+        return c;
+    }
+
+    function buatFrasaDanEmoji() {
+        const jmlFrasa = adaHP ? Math.round(CONFIG.jumlahFrasa * 0.7) : CONFIG.jumlahFrasa;
+        for (let i = 0; i < jmlFrasa; i++) {
+            const teks = CONFIG.frasa[i % CONFIG.frasa.length];
+            const sp = spriteDariKanvas(kanvasTeks(teks, warnaTeks[i % warnaTeks.length]), adaHP ? 30 : 36, { jenis: 'teks' });
+            tempatkan(sp, 55, 125, 14);
+            grupGalaksi.add(sp); elemenKlik.push(sp);
+        }
+        const E = CONFIG.emoji;
+        const jmlEmoji = adaHP ? Math.round(E.jumlah * 0.7) : E.jumlah;
+        for (let i = 0; i < jmlEmoji; i++) {
+            const sp = spriteDariKanvas(kanvasEmoji(E.isi[i % E.isi.length], warnaTeks[i % warnaTeks.length]), E.ukuran, { jenis: 'emoji' });
+            tempatkan(sp, 50, 125, 10);
+            grupGalaksi.add(sp); elemenKlik.push(sp);
+        }
+    }
+
+    // ---------- Foto yang mengorbit (tidak ketemu = dilewati, tidak error) ----------
+    function buatFoto() {
+        const F = CONFIG.foto;
+        if (!F.daftar || !F.daftar.length) return;
+        const dasar = adaHP ? F.ukuranHP : F.ukuran;
+        const pemuat = new THREE.TextureLoader();
+        F.daftar.forEach((item) => {
+            pemuat.load(item.src, (tex) => {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                const rasio = (tex.image.width || 1) / (tex.image.height || 1);
+                for (let k = 0; k < F.ulang; k++) {
+                    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.95, toneMapped: false }));
+                    if (rasio >= 1) sp.scale.set(dasar * rasio, dasar, 1); else sp.scale.set(dasar, dasar / rasio, 1);
+                    sp.userData = { jenis: 'foto', src: item.src, teks: item.teks || '' };
+                    tempatkan(sp, 60, 125, 24);
+                    grupGalaksi.add(sp); elemenKlik.push(sp);
+                }
+            }, undefined, () => console.warn('Foto tidak ditemukan:', item.src));
+        });
+    }
+
+    // ---------- Bintang jatuh ----------
+    function munculBintangJatuh() {
+        const b = new THREE.Points(bintangJatuhGeo, bintangJatuhMat);
+        b.position.set(THREE.MathUtils.randFloatSpread(800), THREE.MathUtils.randFloat(100, 300), THREE.MathUtils.randFloatSpread(800));
+        const k = CONFIG.bintangJatuh.kecepatan;
+        b.userData.v = new THREE.Vector3((Math.random() < 0.5 ? -1 : 1) * k, -k * 0.5, (Math.random() - 0.5) * 2);
+        b.userData.umur = 0;
+        bintangJatuh.push(b);
+        scene.add(b);
+    }
+
+    // ---------- Interaksi ----------
+    function pasangKlik() {
+        const kanvas = renderer.domElement;
+        let awal = null;
+        kanvas.addEventListener('pointerdown', (e) => { awal = { x: e.clientX, y: e.clientY }; });
+        kanvas.addEventListener('pointerup', (e) => {
+            if (!awal) return;
+            const geser = Math.hypot(e.clientX - awal.x, e.clientY - awal.y);
+            awal = null;
+            if (geser > 6) return; // ini geseran, bukan ketukan
+            mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+            raycaster.setFromCamera(mouse, camera);
+            const kena = raycaster.intersectObjects(elemenKlik, false);
+            if (kena.length) bukaKartu(kena[0].object.userData);
+        });
+    }
+
+    function pesanBerikut() {
+        const p = CONFIG.pesanKartu[idxPesan % CONFIG.pesanKartu.length];
+        idxPesan++;
+        return p;
+    }
+
+    function bukaKartu(data) {
+        const foto = $('kartu-foto');
+        if (data.jenis === 'foto') {
+            foto.src = data.src; foto.hidden = false;
+            $('kartu-teks').textContent = data.teks || pesanBerikut();
+        } else {
+            foto.hidden = true;
+            $('kartu-teks').textContent = pesanBerikut();
+        }
+        $('kartu-overlay').style.display = 'flex';
+    }
+    $('kartu-overlay').addEventListener('click', () => { $('kartu-overlay').style.display = 'none'; });
+
+    function saatUkuranBerubah() {
+        renderer.setSize(innerWidth, innerHeight);
+        composer.setSize(innerWidth, innerHeight);
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        if (!saatUkuranBerubah.sudah) {
+            camera.position.set(0, 45, adaHP || innerWidth < 768 ? 215 : 160);
+            saatUkuranBerubah.sudah = true;
+        }
+    }
+
+    // ---------- Animasi ----------
+    function animasi() {
+        requestAnimationFrame(animasi);
+        const t = clock.getElapsedTime();
+
+        grupGalaksi.rotation.y = t * CONFIG.kecepatanPutar;
+
+        const s = 1 + 0.05 * Math.sin(t * 4);          // detak hati
+        hati.scale.setScalar(s);
+        hati.rotation.y = Math.atan2(camera.position.x, camera.position.z); // hati selalu menghadap kamera
+        const g = 120 * (1 + Math.sin(t * 0.8) * 0.04);
+        glow.scale.set(g, g, 1);
+
+        if (CONFIG.bintangJatuh.aktif && Math.random() < CONFIG.bintangJatuh.peluang) munculBintangJatuh();
+        for (let i = bintangJatuh.length - 1; i >= 0; i--) {
+            const b = bintangJatuh[i];
+            b.position.add(b.userData.v);
+            if (++b.userData.umur > 300) { scene.remove(b); bintangJatuh.splice(i, 1); }
+        }
+
+        controls.update();
+        composer.render();
+    }
+
+    init();
+
+    // ---------- Masuk + musik ----------
+    const musik = $('musik');
+    const tombolMusik = $('tombol-musik');
+    $('tombol-masuk').addEventListener('click', () => {
+        $('pintu-masuk').classList.add('hilang');
+        setTimeout(() => { $('pintu-masuk').style.display = 'none'; }, 950);
+        $('petunjuk').classList.add('tampil');
+        setTimeout(() => $('petunjuk').classList.remove('tampil'), 7000);
+
+        if (CONFIG.musik && CONFIG.musik.url) {
+            musik.src = CONFIG.musik.url;
+            musik.volume = CONFIG.musik.volume ?? 0.7;
+            musik.play().then(() => { tombolMusik.style.display = 'block'; }).catch(() => {});
+        }
+    });
+    musik.addEventListener('error', () => { tombolMusik.style.display = 'none'; });
+    tombolMusik.addEventListener('click', () => {
+        if (musik.paused) { musik.play(); tombolMusik.textContent = '🔊'; }
+        else { musik.pause(); tombolMusik.textContent = '🔇'; }
+    });
+    </script>
+</body>
+</html>
